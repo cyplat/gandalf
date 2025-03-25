@@ -1,3 +1,3 @@
-mod routers;
+pub mod routes;
 mod schemas;
-pub mod user_handlers;
+pub mod user_endpoints;

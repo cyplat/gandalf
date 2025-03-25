@@ -2,6 +2,7 @@
 This module holds user repository
 */
 use async_trait::async_trait;
+use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -79,7 +80,8 @@ impl User {
             updated_at: row.get("updated_at"),
             last_login_at: row.get("last_login_at"),
             requires_mfa: row.get("requires_mfa"),
-            auth_provider: AuthProvider::Custom,
+            auth_provider: AuthProvider::from_str(row.get("auth_provider"))
+                .expect("auth_provider should not be missing"),
             last_login_ip: row.get("last_login_ip"),
             last_user_agent: row.get("last_user_agent"),
             data_region: row.get("data_region"),
