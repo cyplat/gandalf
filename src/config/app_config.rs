@@ -18,11 +18,7 @@ The default values are defined in the defaults module.
 use std::env;
 use std::sync::OnceLock;
 
-use super::db_config::DBConfig;
-use crate::app_state::defaults;
-
-// Global config instance
-static CONFIG_INSTANCE: OnceLock<AppConfig> = OnceLock::new();
+use super::defaults;
 
 #[derive(Clone, Debug)]
 pub struct AppConfig {
@@ -35,12 +31,11 @@ pub struct AppConfig {
     pub max_failed_login_attempts: u8,
     pub account_lockout_duration: u8, // in minutes
     pub session_timeout: u8,          // in minutes
-    pub db_config: DBConfig,
 }
 
 impl AppConfig {
-    pub fn load() -> Self {
-        println!("Loading config ... ... ...");
+    fn load() -> Self {
+        println!("Loading app config ... ... ...");
         Self {
             jwt_secret: env::var("JWT_SECRET").expect("JWT_SECRET must be set"),
             jwt_expiration: env::var("JWT_EXPIRATION")
@@ -75,11 +70,13 @@ impl AppConfig {
                 .unwrap_or_else(|_| defaults::SESSION_TIMEOUT.to_string())
                 .parse()
                 .expect("SESSION_TIMEOUT must be a number"),
-            db_config: DBConfig::load(),
         }
     }
+}
 
-    pub async fn get_config() -> &'static AppConfig {
-        CONFIG_INSTANCE.get_or_init(|| AppConfig::load())
-    }
+// Global config instance
+static CONFIG_INSTANCE: OnceLock<AppConfig> = OnceLock::new();
+
+pub async fn get_config() -> &'static AppConfig {
+    CONFIG_INSTANCE.get_or_init(|| AppConfig::load())
 }

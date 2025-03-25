@@ -1,21 +1,24 @@
-mod app_state;
+mod app_modules;
+mod config;
+mod domain;
+mod server;
 
+use std::net::TcpListener;
+
+use config::database;
 use dotenvy::dotenv;
 
-use app_state::AppState;
-
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let app_state = AppState::new().await;
+    let db_connection_pool = database::get_db_connection_pool().await;
+    // Create TCP listener
+    let listener = TcpListener::bind("127.0.0.1:8080")?;
 
-    // Fetch a connection
-    match app_state.db_pool.get().await {
-        Ok(conn) => {
-            println!("Database connection acquired!");
-            let _ = conn.execute("SELECT 1", &[]).await;
-        }
-        Err(e) => eprintln!("Error getting connection: {}", e),
-    }
+    // Create and run server
+    let server = server::WebServer::new(listener, db_connection_pool.clone());
+    server.run().await?;
+
+    Ok(())
 }

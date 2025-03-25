@@ -4,10 +4,34 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-dotenvy = "0.15"
+# Async runtime
 tokio = { version = "1.36", features = ["full", "rt-multi-thread"] }
+async-trait = "0.1.88"
+
+# Postgres Database
 tokio-postgres = { version = "0.7", features = ["with-uuid-1", "with-chrono-0_4"] }
 bb8 = "0.9.0"
 bb8-postgres = "0.9.0"
+
+# Web Framework and Related
+actix-web = "4"
+actix-cors = "0.7.1"
+
+# JSON and Serialization
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+
+# Utility Types
 uuid = { version = "1.7", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+
+# Logging and Observability
+tracing = "0.1"
+tracing-actix-web = "0.7"
+tracing-subscriber = "0.3"
+
+# Error Handling
+thiserror = "2.0.12"
+
+# Configuration
+dotenvy="0.15"
