@@ -3,7 +3,14 @@ This module contains config settings for the database connection.
 */
 use std::env;
 
+use bb8::Pool;
+use bb8_postgres::PostgresConnectionManager;
+use tokio::sync::OnceCell;
+use tokio_postgres::NoTls;
+
 use super::defaults;
+
+pub type PgPool = Pool<PostgresConnectionManager<NoTls>>;
 
 #[derive(Clone, Debug)]
 pub struct DBConfig {
@@ -33,4 +40,25 @@ impl DBConfig {
             max_db_connections,
         }
     }
+}
+
+// Global database instance (Singleton)
+static DB_INSTANCE: tokio::sync::OnceCell<PgPool> = OnceCell::const_new();
+
+pub async fn get_db_connection_pool() -> &'static PgPool {
+    DB_INSTANCE
+        .get_or_init(|| async {
+            let config = DBConfig::load();
+
+            println!("Initializing database connection...");
+            let manager =
+                PostgresConnectionManager::new_from_stringlike(config.database_url.clone(), NoTls)
+                    .unwrap();
+            Pool::builder()
+                .max_size(config.max_db_connections)
+                .build(manager)
+                .await
+                .unwrap()
+        })
+        .await
 }
