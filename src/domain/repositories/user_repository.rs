@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::domain::errors::DomainError;
 use crate::domain::models::AuthProvider;
-use crate::domain::models::User;
+use crate::domain::models::{User, UserState};
 
 use super::base_repository::{BaseRepository, PgPool, RepositoryTrait};
 
@@ -39,7 +39,7 @@ impl RepositoryTrait<User, Uuid> for UserRepository {
                 last_failed_attempt, account_locked, account_locked_until,
                 account_enabled, email_verified, email_verification_token,
                 email_verification_sent_at, created_at, updated_at, 
-                last_login_at, requires_mfa, auth_provider,
+                last_login_at, requires_mfa, auth_provider,user_state,
                 last_login_ip, last_user_agent, data_region, deletion_scheduled_at
             FROM auth.users
             WHERE user_id = $1
@@ -82,6 +82,8 @@ impl User {
             requires_mfa: row.get("requires_mfa"),
             auth_provider: AuthProvider::from_str(row.get("auth_provider"))
                 .expect("auth_provider should not be missing"),
+            user_state: UserState::from_str(row.get("user_state"))
+                .expect("user_state should not be missing"),
             last_login_ip: row.get("last_login_ip"),
             last_user_agent: row.get("last_user_agent"),
             data_region: row.get("data_region"),
