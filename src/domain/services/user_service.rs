@@ -23,4 +23,27 @@ impl UserService {
         let user = self.user_repo.find_by_id(user_id).await?;
         Ok(user)
     }
+
+    pub async fn save(&self, user: User) -> Result<User> {
+        let user = self.user_repo.create(&user).await?;
+        Ok(user)
+    }
+
+    // takes a user object and saves it.
+    pub fn create_user(&self, email: String) -> User {
+        let mut user = User::default();
+        user.email = email;
+        user
+    }
+
+    pub async fn user_exists(&self, email: &str) -> Result<bool> {
+        let exists = self.user_repo.email_exists(email).await?;
+        Ok(exists)
+    }
+
+    pub async fn generate_email_verification_token(&self, user_id: &Uuid) -> Result<String> {
+        // Todo: generate a token and save it to the database
+        // let token = Uuid::new_v4().to_string();
+        Ok("some very long verification token".to_string())
+    }
 }

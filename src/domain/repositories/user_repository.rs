@@ -25,6 +25,88 @@ impl UserRepository {
             base: BaseRepository::new(pool),
         }
     }
+    pub async fn create(&self, user: &User) -> Result<User> {
+        let conn = self.base.get_conn().await?;
+
+        let query = "
+            INSERT INTO auth.users (
+                external_id, username, email, password_hash,
+                password_updated_at, password_reset_required, failed_login_attempts,
+                last_failed_attempt, account_locked, account_locked_until,
+                account_enabled, email_verified, email_verification_token,
+                email_verification_sent_at, created_at, updated_at,
+                last_login_at, requires_mfa, auth_provider,user_state,
+                last_login_ip, last_user_agent, data_region, deletion_scheduled_at
+            )
+            VALUES (
+                $1, $2, $3, $4,
+                $5, $6, $7,
+                $8, $9, $10,
+                $11, $12, $13,
+                $14, $15, $16,
+                $17, $18, $19,
+                $20, $21, $22, $23
+            )
+            RETURNING *
+        ";
+
+        let row = conn
+            .query_one(
+                query,
+                &[
+                    &user.external_id,
+                    &user.username,
+                    &user.email,
+                    &user.password_hash,
+                    &user.password_updated_at,
+                    &user.password_reset_required,
+                    &user.failed_login_attempts,
+                    &user.last_failed_attempt,
+                    &user.account_locked,
+                    &user.account_locked_until,
+                    &user.account_enabled,
+                    &user.email_verified,
+                    &user.email_verification_token,
+                    &user.email_verification_sent_at,
+                    &user.created_at,
+                    &user.updated_at,
+                    &user.last_login_at,
+                    &user.requires_mfa,
+                    &user.auth_provider.to_string(),
+                    &user.user_state.to_string(),
+                    &user.last_login_ip,
+                    &user.last_user_agent,
+                    &user.data_region,
+                    &user.deletion_scheduled_at,
+                ],
+            )
+            .await
+            .map_err(DomainError::DatabaseError)?;
+
+        Ok(User::from_row(&row))
+    }
+    
+
+    pub async fn email_exists(&self, email: &str) -> Result<bool> {
+        let conn = self.base.get_conn().await?;
+
+        let query = "
+            SELECT EXISTS (
+                SELECT 1
+                FROM auth.users
+                WHERE email = $1
+            )
+        ";
+
+        let row = conn
+            .query_one(query, &[&email])
+            .await
+            .map_err(DomainError::DatabaseError)?;
+
+        let exists: bool = row.get(0);
+
+        Ok(exists)
+    }
 }
 
 #[async_trait]
