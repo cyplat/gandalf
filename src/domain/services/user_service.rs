@@ -2,11 +2,10 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::config::database::PgPool;
-use crate::domain::errors::DomainError;
+use crate::domain::errors::UserError;
 use crate::domain::models::User;
 use crate::domain::repositories::{RepositoryTrait, UserRepository};
-
-type Result<T> = std::result::Result<T, DomainError>;
+type Result<T> = std::result::Result<T, UserError>;
 
 pub struct UserService {
     user_repo: UserRepository,
@@ -24,15 +23,17 @@ impl UserService {
         Ok(user)
     }
 
-    pub async fn save(&self, user: User) -> Result<User> {
+    // takes a new user object and persists it to the database
+    pub async fn create_user(&self, user: User) -> Result<User> {
         let user = self.user_repo.create(&user).await?;
         Ok(user)
     }
 
-    // takes a user object and saves it.
-    pub fn create_user(&self, email: String) -> User {
+    // creates a new user with default values and email
+    // user not persisted
+    pub fn create_user_with_defaults(&self, email: &String) -> User {
         let mut user = User::default();
-        user.email = email;
+        user.email = email.to_string();
         user
     }
 

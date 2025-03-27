@@ -1,7 +1,14 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::domain::models::User;
+
+// User registration with email and password
+#[derive(Debug, Deserialize)]
+pub struct RegistrationRequestLocal {
+    pub email: String,
+    pub password: String,
+}
 
 #[derive(Debug, Serialize)]
 pub struct UserResponse {

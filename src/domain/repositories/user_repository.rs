@@ -6,13 +6,13 @@ use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::domain::errors::DomainError;
+use crate::domain::errors::UserError;
 use crate::domain::models::AuthProvider;
 use crate::domain::models::{User, UserState};
 
 use super::base_repository::{BaseRepository, PgPool, RepositoryTrait};
 
-type Result<T> = std::result::Result<T, DomainError>;
+type Result<T> = std::result::Result<T, UserError>;
 
 // Create User Repository
 pub struct UserRepository {
@@ -25,67 +25,13 @@ impl UserRepository {
             base: BaseRepository::new(pool),
         }
     }
+
     pub async fn create(&self, user: &User) -> Result<User> {
         let conn = self.base.get_conn().await?;
-
-        let query = "
-            INSERT INTO auth.users (
-                external_id, username, email, password_hash,
-                password_updated_at, password_reset_required, failed_login_attempts,
-                last_failed_attempt, account_locked, account_locked_until,
-                account_enabled, email_verified, email_verification_token,
-                email_verification_sent_at, created_at, updated_at,
-                last_login_at, requires_mfa, auth_provider,user_state,
-                last_login_ip, last_user_agent, data_region, deletion_scheduled_at
-            )
-            VALUES (
-                $1, $2, $3, $4,
-                $5, $6, $7,
-                $8, $9, $10,
-                $11, $12, $13,
-                $14, $15, $16,
-                $17, $18, $19,
-                $20, $21, $22, $23
-            )
-            RETURNING *
-        ";
-
-        let row = conn
-            .query_one(
-                query,
-                &[
-                    &user.external_id,
-                    &user.username,
-                    &user.email,
-                    &user.password_hash,
-                    &user.password_updated_at,
-                    &user.password_reset_required,
-                    &user.failed_login_attempts,
-                    &user.last_failed_attempt,
-                    &user.account_locked,
-                    &user.account_locked_until,
-                    &user.account_enabled,
-                    &user.email_verified,
-                    &user.email_verification_token,
-                    &user.email_verification_sent_at,
-                    &user.created_at,
-                    &user.updated_at,
-                    &user.last_login_at,
-                    &user.requires_mfa,
-                    &user.auth_provider.to_string(),
-                    &user.user_state.to_string(),
-                    &user.last_login_ip,
-                    &user.last_user_agent,
-                    &user.data_region,
-                    &user.deletion_scheduled_at,
-                ],
-            )
-            .await
-            .map_err(DomainError::DatabaseError)?;
-
+        let query = user.to_insert_sql();
+        let row = conn.query_one(&query, &[]).await?;
         Ok(User::from_row(&row))
     }
-    
 
     pub async fn email_exists(&self, email: &str) -> Result<bool> {
         let conn = self.base.get_conn().await?;
@@ -101,7 +47,7 @@ impl UserRepository {
         let row = conn
             .query_one(query, &[&email])
             .await
-            .map_err(DomainError::DatabaseError)?;
+            .map_err(UserError::DatabaseError)?;
 
         let exists: bool = row.get(0);
 
@@ -130,7 +76,7 @@ impl RepositoryTrait<User, Uuid> for UserRepository {
         let row = conn
             .query_opt(query, &[&id])
             .await
-            .map_err(DomainError::DatabaseError)?;
+            .map_err(UserError::DatabaseError)?;
 
         match row {
             Some(row) => Ok(Some(User::from_row(&row))),
@@ -171,5 +117,124 @@ impl User {
             data_region: row.get("data_region"),
             deletion_scheduled_at: row.get("deletion_scheduled_at"),
         }
+    }
+
+    fn to_insert_sql(&self) -> String {
+        let mut fields = Vec::new();
+        let mut values = Vec::new();
+
+        macro_rules! push_field {
+            ($field_name:expr, $value:expr) => {
+                if let Some(val) = $value {
+                    fields.push($field_name);
+                    values.push(format!("{}", val));
+                }
+            };
+        }
+
+        // Mandatory fields
+        fields.push("user_id");
+        values.push(format!("'{}'", self.user_id));
+
+        fields.push("email");
+        values.push(format!("'{}'", self.email));
+
+        fields.push("password_reset_required");
+        values.push(self.password_reset_required.to_string());
+
+        fields.push("failed_login_attempts");
+        values.push(self.failed_login_attempts.to_string());
+
+        fields.push("account_locked");
+        values.push(self.account_locked.to_string());
+
+        fields.push("account_enabled");
+        values.push(self.account_enabled.to_string());
+
+        fields.push("email_verified");
+        values.push(self.email_verified.to_string());
+
+        fields.push("created_at");
+        values.push(format!("'{}'", self.created_at.to_rfc3339()));
+
+        fields.push("updated_at");
+        values.push(format!("'{}'", self.updated_at.to_rfc3339()));
+
+        fields.push("requires_mfa");
+        values.push(self.requires_mfa.to_string());
+
+        fields.push("auth_provider");
+        values.push(format!("'{}'", self.auth_provider.to_string()));
+
+        fields.push("user_state");
+        values.push(format!("'{}'", self.user_state.to_string()));
+
+        fields.push("data_region");
+        values.push(format!("'{}'", self.data_region));
+
+        // Optional fields
+        push_field!(
+            "external_id",
+            self.external_id.as_deref().map(|v| format!("'{}'", v))
+        );
+        push_field!(
+            "username",
+            self.username.as_deref().map(|v| format!("'{}'", v))
+        );
+        push_field!(
+            "password_hash",
+            self.password_hash.as_deref().map(|v| format!("'{}'", v))
+        );
+        push_field!(
+            "password_updated_at",
+            self.password_updated_at
+                .map(|d| format!("'{}'", d.to_rfc3339()))
+        );
+        push_field!(
+            "last_failed_attempt",
+            self.last_failed_attempt
+                .map(|d| format!("'{}'", d.to_rfc3339()))
+        );
+        push_field!(
+            "account_locked_until",
+            self.account_locked_until
+                .map(|d| format!("'{}'", d.to_rfc3339()))
+        );
+        push_field!(
+            "email_verification_token",
+            self.email_verification_token
+                .as_deref()
+                .map(|v| format!("'{}'", v))
+        );
+        push_field!(
+            "email_verification_sent_at",
+            self.email_verification_sent_at
+                .map(|d| format!("'{}'", d.to_rfc3339()))
+        );
+        push_field!(
+            "last_login_at",
+            self.last_login_at.map(|d| format!("'{}'", d.to_rfc3339()))
+        );
+        push_field!(
+            "last_login_ip",
+            self.last_login_ip.map(|ip| format!("'{}'", ip))
+        );
+        push_field!(
+            "last_user_agent",
+            self.last_user_agent.as_deref().map(|v| format!("'{}'", v))
+        );
+        push_field!(
+            "deletion_scheduled_at",
+            self.deletion_scheduled_at
+                .map(|d| format!("'{}'", d.to_rfc3339()))
+        );
+
+        // Todo: make fields static part of query
+        // todo: consider not returning the modified row
+        format!(
+            "INSERT INTO auth.users ({}) VALUES ({}) RETURNING *;",
+            fields.join(", "),
+            values.join(", ")
+        )
     }
 }
