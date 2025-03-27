@@ -34,12 +34,15 @@ CREATE TABLE auth.users (
     last_login_at TIMESTAMPTZ NULL,
     requires_mfa BOOLEAN DEFAULT FALSE,
     auth_provider VARCHAR(50) DEFAULT 'local',  -- 'local', 'google', 'microsoft', 'apple', 'lti', etc.
+    user_state VARCHAR(50) DEFAULT 'registered', 
     last_login_ip INET NULL,
     last_user_agent TEXT NULL,
     data_region VARCHAR(50) DEFAULT 'us-east',
     deletion_scheduled_at TIMESTAMPTZ NULL,
     CONSTRAINT valid_auth_provider CHECK (auth_provider IN 
-        ('local', 'google', 'microsoft', 'apple', 'facebook', 'lti', 'saml', 'ldap', 'custom'))
+        ('local', 'google', 'microsoft', 'apple', 'facebook', 'lti', 'saml', 'ldap', 'custom')),
+    CONSTRAINT valid_user_state CHECK (user_state IN 
+        ('registered', 'verified','active','incomplete','disabled','locked','deleted'))
 );
 
 -- Create index on fields commonly used in auth queries

@@ -1,3 +1,4 @@
+mod adapters;
 mod app_modules;
 mod config;
 mod domain;

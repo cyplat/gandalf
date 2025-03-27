@@ -3,7 +3,7 @@
 use actix_web::{
     App, HttpResponse, HttpServer,
     middleware::{Logger, NormalizePath},
-    web::{self, ServiceConfig},
+    web,
 };
 
 use actix_cors::Cors;
@@ -16,14 +16,7 @@ use tracing_subscriber;
 use crate::app_modules::app_state::AppState;
 use crate::config::database::PgPool;
 
-use crate::app_modules::api::v1::user_handlers::UserHandler;
-
-// Configuration function for routes
-fn configure_routes(cfg: &mut ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1").route("/users/{user_id}", web::get().to(UserHandler::get_user)),
-    );
-}
+use crate::app_modules::api::api_routes;
 
 pub struct WebServer {
     listener: TcpListener,
@@ -53,7 +46,7 @@ impl WebServer {
                 // Application state
                 .app_data(app_state.clone())
                 // Configure routes
-                .configure(configure_routes)
+                .configure(api_routes)
                 // Fallback handler
                 .default_service(web::route().to(|| async {
                     HttpResponse::NotFound().json(json!({

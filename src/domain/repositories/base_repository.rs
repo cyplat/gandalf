@@ -6,7 +6,7 @@ use bb8::{Pool, PooledConnection, RunError};
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
 
-use crate::domain::errors::DomainError;
+use crate::domain::errors::UserError;
 
 // Type aliases for cleaner code
 pub type PgPool = Pool<PostgresConnectionManager<NoTls>>;
@@ -15,7 +15,7 @@ pub type PgConn<'a> = PooledConnection<'a, PostgresConnectionManager<NoTls>>;
 // Base repository trait that all repositories will implement
 #[async_trait]
 pub trait RepositoryTrait<T, ID> {
-    async fn find_by_id(&self, id: ID) -> Result<Option<T>, DomainError>;
+    async fn find_by_id(&self, id: ID) -> Result<Option<T>, UserError>;
 }
 
 // Base repository that provides connection access
@@ -28,11 +28,11 @@ impl BaseRepository {
         Self { pool }
     }
 
-    pub async fn get_conn(&self) -> Result<PgConn, DomainError> {
+    pub async fn get_conn(&self) -> Result<PgConn, UserError> {
         self.pool.get().await.map_err(|e| match e {
-            RunError::User(err) => DomainError::DatabaseError(err),
+            RunError::User(err) => UserError::DatabaseError(err),
             RunError::TimedOut => {
-                DomainError::InternalError("DB connection pool timed out".to_string())
+                UserError::InternalError(anyhow::anyhow!("Database connection timed out"))
             }
         })
     }
