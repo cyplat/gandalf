@@ -64,9 +64,8 @@ impl RepositoryTrait<User, Uuid> for UserRepository {
             SELECT 
                 id, external_id, username, email, password_hash, 
                 password_updated_at, password_reset_required, failed_login_attempts,
-                last_failed_attempt, account_locked, account_locked_until,
-                account_enabled, email_verified, email_verification_token,
-                email_verification_sent_at, created_at, updated_at, 
+                last_failed_attempt, account_locked_until, email_verified,
+                email_verification_token, email_verification_sent_at, created_at, updated_at, 
                 last_login_at, requires_mfa, auth_provider,user_state,
                 last_login_ip, last_user_agent, data_region, deletion_scheduled_at
             FROM auth.users
@@ -98,9 +97,7 @@ impl User {
             password_reset_required: row.get("password_reset_required"),
             failed_login_attempts: row.get("failed_login_attempts"),
             last_failed_attempt: row.get("last_failed_attempt"),
-            account_locked: row.get("account_locked"),
             account_locked_until: row.get("account_locked_until"),
-            account_enabled: row.get("account_enabled"),
             email_verified: row.get("email_verified"),
             email_verification_token: row.get("email_verification_token"),
             email_verification_sent_at: row.get("email_verification_sent_at"),
@@ -144,12 +141,6 @@ impl User {
 
         fields.push("failed_login_attempts");
         values.push(self.failed_login_attempts.to_string());
-
-        fields.push("account_locked");
-        values.push(self.account_locked.to_string());
-
-        fields.push("account_enabled");
-        values.push(self.account_enabled.to_string());
 
         fields.push("email_verified");
         values.push(self.email_verified.to_string());
