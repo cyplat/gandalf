@@ -62,7 +62,7 @@ impl RepositoryTrait<User, Uuid> for UserRepository {
 
         let query = "
             SELECT 
-                user_id, external_id, username, email, password_hash, 
+                id, external_id, username, email, password_hash, 
                 password_updated_at, password_reset_required, failed_login_attempts,
                 last_failed_attempt, account_locked, account_locked_until,
                 account_enabled, email_verified, email_verification_token,
@@ -70,7 +70,7 @@ impl RepositoryTrait<User, Uuid> for UserRepository {
                 last_login_at, requires_mfa, auth_provider,user_state,
                 last_login_ip, last_user_agent, data_region, deletion_scheduled_at
             FROM auth.users
-            WHERE user_id = $1
+            WHERE id = $1
         ";
 
         let row = conn
@@ -89,7 +89,7 @@ impl RepositoryTrait<User, Uuid> for UserRepository {
 impl User {
     fn from_row(row: &tokio_postgres::Row) -> Self {
         User {
-            user_id: row.get("user_id"),
+            id: row.get("id"),
             external_id: row.get("external_id"),
             username: row.get("username"),
             email: row.get("email"),
@@ -133,8 +133,8 @@ impl User {
         }
 
         // Mandatory fields
-        fields.push("user_id");
-        values.push(format!("'{}'", self.user_id));
+        fields.push("id");
+        values.push(format!("'{}'", self.id));
 
         fields.push("email");
         values.push(format!("'{}'", self.email));

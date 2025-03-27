@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::auth_provider_model::AuthProvider;
 #[derive(Debug)]
 pub struct User {
-    pub user_id: Uuid,
+    pub id: Uuid,
     pub external_id: Option<String>,
     pub username: Option<String>,
     pub email: String,
@@ -39,7 +39,7 @@ pub struct User {
 impl Default for User {
     fn default() -> Self {
         Self {
-            user_id: Uuid::new_v4(),
+            id: Uuid::new_v4(),
             external_id: None,
             username: None,
             email: String::new(),

@@ -29,7 +29,7 @@ pub struct UserResponse {
 impl From<User> for UserResponse {
     fn from(user: User) -> Self {
         Self {
-            user_id: user.user_id,
+            user_id: user.id,
             username: user.username,
             email: user.email,
             external_id: user.external_id,
