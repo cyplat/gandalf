@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let db_connection_pool = database::get_db_connection_pool().await;
     // Create TCP listener
-    let listener = TcpListener::bind("127.0.0.1:8080")?;
+    let listener = TcpListener::bind("0.0.0.0:8080")?;
 
     // Create and run server
     let server = server::WebServer::new(listener, db_connection_pool.clone());

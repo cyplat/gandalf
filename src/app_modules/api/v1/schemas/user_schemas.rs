@@ -16,7 +16,6 @@ pub struct UserResponse {
     pub username: Option<String>,
     pub email: String,
     pub external_id: Option<String>,
-    pub account_enabled: bool,
     pub email_verified: bool,
     pub auth_provider: String,
     pub user_state: String,
@@ -29,11 +28,10 @@ pub struct UserResponse {
 impl From<User> for UserResponse {
     fn from(user: User) -> Self {
         Self {
-            user_id: user.user_id,
+            user_id: user.id,
             username: user.username,
             email: user.email,
             external_id: user.external_id,
-            account_enabled: user.account_enabled,
             email_verified: user.email_verified,
             auth_provider: user.auth_provider.to_string(),
             user_state: user.user_state.to_string(),

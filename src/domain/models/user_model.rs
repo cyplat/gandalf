@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::auth_provider_model::AuthProvider;
 #[derive(Debug)]
 pub struct User {
-    pub user_id: Uuid,
+    pub id: Uuid,
     pub external_id: Option<String>,
     pub username: Option<String>,
     pub email: String,
@@ -18,9 +18,7 @@ pub struct User {
     pub password_reset_required: bool,
     pub failed_login_attempts: i32,
     pub last_failed_attempt: Option<DateTime<Utc>>,
-    pub account_locked: bool,
     pub account_locked_until: Option<DateTime<Utc>>,
-    pub account_enabled: bool,
     pub email_verified: bool,
     pub email_verification_token: Option<String>,
     pub email_verification_sent_at: Option<DateTime<Utc>>,
@@ -39,7 +37,7 @@ pub struct User {
 impl Default for User {
     fn default() -> Self {
         Self {
-            user_id: Uuid::new_v4(),
+            id: Uuid::new_v4(),
             external_id: None,
             username: None,
             email: String::new(),
@@ -48,9 +46,7 @@ impl Default for User {
             password_reset_required: false,
             failed_login_attempts: 0,
             last_failed_attempt: None,
-            account_locked: false,
             account_locked_until: None,
-            account_enabled: true,
             email_verified: false,
             email_verification_token: None,
             email_verification_sent_at: None,

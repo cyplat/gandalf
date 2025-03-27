@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use crate::config::database::PgPool;
 use crate::domain::services::AuthService;
+use crate::domain::services::EmailService;
 use crate::domain::services::UserService;
+
+use crate::app_modules::auth::{PasswordHasher, configure_auth_strategies};
 
 // Configuration struct to hold application state
 pub struct AppState {
@@ -11,11 +14,21 @@ pub struct AppState {
     pub auth_service: Arc<AuthService>,
     // Add other services or configuration as needed
 }
+
 impl AppState {
     pub fn new(pool: PgPool) -> AppState {
         let db_pool = Arc::new(pool);
         let user_service = Arc::new(UserService::new(db_pool.clone()));
-        let auth_service = Arc::new(AuthService::new(user_service.clone()));
+
+        let email_service = Arc::new(EmailService::new());
+
+        let auth_strategies = configure_auth_strategies(
+            Arc::clone(&user_service),
+            Arc::clone(&email_service),
+            Arc::new(PasswordHasher::new()),
+        );
+
+        let auth_service = Arc::new(AuthService::new(auth_strategies));
 
         AppState {
             db_pool,

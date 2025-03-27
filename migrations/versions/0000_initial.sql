@@ -14,7 +14,7 @@ CREATE SCHEMA auth;
 
 -- Users table - minimal information needed for authentication
 CREATE TABLE auth.users (
-    user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     external_id VARCHAR(255) NULL UNIQUE,  -- For linking with User Management service
     username CITEXT UNIQUE NULL,  -- NULL for SSO-only users
     email CITEXT UNIQUE NOT NULL,
@@ -23,9 +23,7 @@ CREATE TABLE auth.users (
     password_reset_required BOOLEAN DEFAULT FALSE,
     failed_login_attempts INTEGER DEFAULT 0,
     last_failed_attempt TIMESTAMPTZ NULL,
-    account_locked BOOLEAN DEFAULT FALSE,
     account_locked_until TIMESTAMPTZ NULL,
-    account_enabled BOOLEAN DEFAULT TRUE,
     email_verified BOOLEAN DEFAULT FALSE,
     email_verification_token VARCHAR(255) NULL,
     email_verification_sent_at TIMESTAMPTZ NULL,
@@ -53,7 +51,7 @@ CREATE INDEX idx_users_auth_provider ON auth.users(auth_provider);
 
 -- User roles - simplified RBAC for authentication service
 CREATE TABLE auth.roles (
-    role_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     role_name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT NULL,
     is_system_role BOOLEAN DEFAULT FALSE,  -- System roles cannot be deleted
@@ -63,17 +61,17 @@ CREATE TABLE auth.roles (
 
 -- User-role assignments
 CREATE TABLE auth.user_roles (
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES auth.roles(role_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES auth.roles(id) ON DELETE CASCADE,
     assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    assigned_by UUID NULL REFERENCES auth.users(user_id) ON DELETE SET NULL,
+    assigned_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL,
     PRIMARY KEY (user_id, role_id)
 );
 
 -- Sessions for users (when not using JWT-only approach)
 CREATE TABLE auth.sessions (
     session_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     refresh_token_hash VARCHAR(255) NOT NULL,
     device_identifier VARCHAR(255) NULL,
     device_name VARCHAR(255) NULL,
@@ -95,10 +93,10 @@ CREATE INDEX idx_sessions_refresh_token_hash ON auth.sessions(refresh_token_hash
 -- Token blacklist for immediate revocation of JWTs if needed
 CREATE TABLE auth.token_blacklist (
     jti UUID PRIMARY KEY,  -- JWT ID that's been revoked
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     expires_at TIMESTAMPTZ NOT NULL,
     revoked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    revoked_by UUID NULL REFERENCES auth.users(user_id) ON DELETE SET NULL,
+    revoked_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL,
     reason VARCHAR(50) NULL
 );
 
@@ -112,7 +110,7 @@ CREATE INDEX idx_token_blacklist_user_id ON auth.token_blacklist(user_id);
 -- MFA methods for users
 CREATE TABLE auth.mfa_methods (
     method_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     method_type VARCHAR(20) NOT NULL,  -- 'totp', 'sms', 'email', 'recovery'
     identifier VARCHAR(255) NULL,  -- phone number for SMS, email for email-based OTP
     secret VARCHAR(255) NULL,  -- encrypted TOTP secret or hashed backup codes
@@ -132,7 +130,7 @@ CREATE UNIQUE INDEX idx_mfa_methods_user_method ON auth.mfa_methods(user_id, met
 -- Recovery codes for users (when not stored in mfa_methods)
 CREATE TABLE auth.recovery_codes (
     code_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     code_hash VARCHAR(255) NOT NULL,
     used BOOLEAN DEFAULT FALSE,
     used_at TIMESTAMPTZ NULL,
@@ -167,7 +165,7 @@ CREATE TABLE auth.identity_providers (
 -- Individual user connections to identity providers
 CREATE TABLE auth.user_identities (
     identity_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     provider_id UUID NOT NULL REFERENCES auth.identity_providers(provider_id) ON DELETE CASCADE,
     provider_user_id VARCHAR(255) NOT NULL,  -- ID from the external provider
     provider_email CITEXT NULL,
@@ -228,7 +226,7 @@ CREATE INDEX idx_lti_contexts_tenant ON auth.lti_contexts(tenant_id);
 CREATE TABLE auth.security_events (
     event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_type VARCHAR(50) NOT NULL,  -- 'login', 'logout', 'password_change', etc.
-    user_id UUID NULL REFERENCES auth.users(user_id) ON DELETE SET NULL,
+    user_id UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL,
     ip_address INET NULL,
     user_agent TEXT NULL,
     device_identifier VARCHAR(255) NULL,
@@ -249,7 +247,7 @@ CREATE TABLE auth.ip_rules (
     ip_range CIDR NULL,
     rule_type VARCHAR(20) NOT NULL,  -- 'allow', 'block', 'mfa_required'
     reason TEXT NULL,
-    created_by UUID NULL REFERENCES auth.users(user_id) ON DELETE SET NULL,
+    created_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NULL,
     CONSTRAINT valid_rule_type CHECK (rule_type IN ('allow', 'block', 'mfa_required')),
@@ -282,7 +280,7 @@ CREATE TABLE auth.password_policies (
 -- Password history for preventing reuse
 CREATE TABLE auth.password_history (
     history_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
