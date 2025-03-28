@@ -1,14 +1,15 @@
-mod auth_strategies;
+mod strategies;
 
-pub use auth_strategies::AuthStrategy;
+pub use strategies::AuthStrategy;
 
 pub use crate::domain::errors::UserError;
 
+use crate::app_modules::pwd::PasswordUtil;
 use crate::domain::services::EmailService;
 use crate::domain::services::UserService;
-use auth_strategies::EmailPasswordAuthStrategy;
 use std::collections::HashMap;
 use std::sync::Arc;
+use strategies::EmailPasswordAuthStrategy;
 
 // Authentication Methods Enum
 #[derive(Hash, Eq, PartialEq)]
@@ -19,33 +20,21 @@ pub enum AuthMethod {
     // Other providers can be added
 }
 
-pub struct PasswordHasher;
-impl PasswordHasher {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn hash_password(&self, password: &str) -> Result<String, UserError> {
-        // TODO: Implement password hashing logic here
-        Ok("hashed_password".to_string())
-    }
-}
-
 // Configuration for authentication strategies
 pub fn configure_auth_strategies(
     user_service: Arc<UserService>,
     email_service: Arc<EmailService>,
-    password_hasher: Arc<PasswordHasher>,
-) -> HashMap<AuthMethod, Box<dyn AuthStrategy + Send + Sync>> {
-    let mut strategies = HashMap::new();
+    password_util: Arc<PasswordUtil>,
+) -> HashMap<AuthMethod, Arc<dyn AuthStrategy + Send + Sync>> {
+    let mut strategies: HashMap<AuthMethod, Arc<dyn AuthStrategy + Send + Sync>> = HashMap::new();
 
     strategies.insert(
         AuthMethod::EmailPassword,
-        Box::new(EmailPasswordAuthStrategy::new(
+        Arc::new(EmailPasswordAuthStrategy::new(
             user_service,
             email_service,
-            password_hasher,
-        )) as Box<dyn AuthStrategy + Send + Sync>,
+            password_util,
+        )),
     );
 
     // When ready to add Google Auth
